@@ -1,0 +1,76 @@
+# Emulador local de Azure Service Bus para srv-payhub-java-listener-svc.
+# Provisiona el namespace "sbemulatorns" y los 6 topics definidos en ./config.json.
+#
+# Levantar:  docker compose up -d   (desde esta carpeta)
+# Listener:  ./mvnw quarkus:dev -Dquarkus.profile=local
+#            (usa Endpoint=sb://localhost;...;UseDevelopmentEmulator=true; en el puerto 5672)
+# Health:    http://localhost:5300/health
+
+name: payhub-servicebus-emulator
+
+services:
+  emulator:
+    image: mcr.microsoft.com/azure-messaging/servicebus-emulator:latest
+    container_name: servicebus-emulator
+    depends_on:
+      - mssql
+    environment:
+      ACCEPT_EULA: "Y"
+      SQL_SERVER: mssql
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-PayhubLocal_123!}
+      SQL_WAIT_INTERVAL: ${SQL_WAIT_INTERVAL:-15}
+    ports:
+      - "5672:5672" # AMQP
+      - "5300:5300" # health / management
+    volumes:
+      - ./config.json:/ServiceBus_Emulator/ConfigFiles/Config.json:ro
+    networks:
+      sb-emulator:
+        aliases:
+          - sb-emulator
+
+  backend:
+    build:
+      context: ./backend
+      target: development
+    environment:
+      PORT: "3000"
+      SERVICEBUS_CONFIG_PATH: /app/config.json
+      SERVICEBUS_CONNECTION_STRING: Endpoint=sb://emulator/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/test:/app/test
+      - ./config.json:/app/config.json:ro
+    depends_on:
+      - emulator
+    networks:
+      - sb-emulator
+
+  frontend:
+    build:
+      context: ./frontend
+      target: development
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/index.html:/app/index.html:ro
+      - ./frontend/vite.config.js:/app/vite.config.js:ro
+    depends_on:
+      - backend
+    networks:
+      - sb-emulator
+
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: servicebus-mssql
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-PayhubLocal_123!}
+    networks:
+      sb-emulator:
+        aliases:
+          - mssql
+
+networks:
+  sb-emulator:

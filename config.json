@@ -1,0 +1,39 @@
+{
+  "UserConfig": {
+    "Namespaces": [
+      {
+        "Name": "sbemulatorns",
+        "Queues": [
+          {
+            "Name": "demo-queue",
+            "Properties": {
+              "DefaultMessageTimeToLive": "PT1H",
+              "MaxDeliveryCount": 10
+            }
+          }
+        ],
+        "Topics": [
+          {
+            "Name": "demo-topic",
+            "Properties": {
+              "DefaultMessageTimeToLive": "PT1H",
+              "DuplicateDetectionHistoryTimeWindow": "PT5M",
+              "RequiresDuplicateDetection": true
+            },
+            "Subscriptions": [
+              {
+                "Name": "demo-subscription",
+                "Properties": {
+                  "MaxDeliveryCount": 10
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "Logging": {
+      "Type": "File"
+    }
+  }
+}
