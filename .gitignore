@@ -19,3 +19,4 @@
 **/*.pid
 **/*.seed
 /prompts
+config.json
